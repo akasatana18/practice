@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8" />
+    <title>ブロック崩し</title>
+    <style>
+    	* { padding: 0; margin: 0; }
+    	canvas { background: #eee; display: block; margin: 0 auto; }
+    </style>
+</head>
+<body>
+
+<canvas id="myCanvas" width="480" height="500"></canvas>
+
+<script>
+	var canvas = document.getElementById("myCanvas");
+	var ctx = canvas.getContext("2d");
+	
+	//ボールの描画関係の変数
+	var x = canvas.width/2;
+	var y = canvas.height-30;
+	var dx = 2;
+	var dy = -2;
+	var ballR = 10;
+	
+	//パドルの描画関係の変数
+	var paddleH = 10;
+	var paddleW = 75;
+	var paddleX = (canvas.width-paddleW)/2;
+	
+	//矢印キーの判定
+	var rightPressed = false;
+	var leftPressed = false;
+	
+	//ブロックの変数
+	var brockRowCount = 6;
+	var brockColumnCount = 5;
+	var brockW = 75;
+	var brockH = 20;
+	var brockPadding = 10;
+	var brockOffsetTop = 30;
+	var brockOffsetLeft = 30;
+	var brocks = [];
+	for(var c=0; c<brockColumnCount; c++) {
+    	brocks[c] = [];
+    	for(var r=0; r<brockRowCount; r++) {
+        	brocks[c][r] = { x: 0, y: 0 ,status: 1 };
+    	}
+	}
+	
+	var score = 0;
+	var n = 0;
+	var kb = 6;//最初から消しておくブロック
+	
+	var winscore = brockRowCount*brockColumnCount*10-kb*10;//勝利条件スコア
+	
+	while(n < kb){
+		var rx = getRandom(brockColumnCount);
+		var ry = getRandom(brockRowCount);
+		if(brocks[rx][ry].status == 1){
+			brocks[rx][ry].status = 0;
+			n++;
+		}
+	}
+	
+	
+	function getRandom(saidai){
+		var random = Math.floor( Math.random () * (saidai-1))
+		
+		return random;
+	}
+	
+	//ボールの描画
+	function drawBall(){
+		ctx.beginPath();
+		ctx.arc(x, y, ballR, 0, Math.PI*2);
+		ctx.fillStyle = "#00ff00";
+		ctx.fill();
+		ctx.closePath();
+	}
+	
+	//パドルの描画
+	function drawPaddle() {
+	    ctx.beginPath();
+	    ctx.rect(paddleX, canvas.height-paddleH, paddleW, paddleH);
+	    ctx.fillStyle = "#0000ff";
+	    ctx.fill();
+	    ctx.closePath();
+	}
+	
+	//ブロックの描画
+	function drawBrocks() {
+	    for(var c=0; c<brockColumnCount; c++) {
+	        for(var r=0; r<brockRowCount; r++) {
+		        if(brocks[c][r].status == 1){
+		        	var brockX = (c*(brockW+brockPadding))+brockOffsetLeft;
+		            var brockY = (r*(brockH+brockPadding))+brockOffsetTop;
+		            brocks[c][r].x = brockX;
+		            brocks[c][r].y = brockY;
+		            ctx.beginPath();
+		            ctx.rect(brockX, brockY, brockW, brockH);
+		            ctx.fillStyle = "#ff0000";
+		            ctx.fill();
+		            ctx.closePath();
+		        }
+	        }
+	    }
+	}
+	
+	
+	function drawScore() {
+	    ctx.font = "16px Arial";
+	    ctx.fillStyle = "#0095DD";
+	    ctx.fillText("Score: "+score, 8, 20);
+	}
+	
+	//ボールの壁に当たった時の処理
+	function kabehantei(){
+		if(x + dx > canvas.width-ballR|| x + dx < ballR) {
+    		dx = -dx;
+		}
+		if(y + dy < ballR) {
+    		dy = -dy;
+    	}else if(y+dy>canvas.height-ballR){
+    		if(x>paddleX && x < paddleX+paddleW){
+    			dy=-dy;
+    		}
+    		else{
+	    		alert("GAME OVER");
+	    		document.location.reload();
+	    		clearInterval(interval); 
+    		}
+		}
+		x+=dx;
+		y+=dy;
+	}
+	
+	//パドルの移動
+	function paddleplay(){
+		if(rightPressed && paddleX < canvas.width-paddleW) {
+	    	paddleX += 7;
+		}
+		else if(leftPressed && paddleX > 0) {
+    		paddleX -= 7;
+		}
+	}
+	
+	//ブロックとボールの当たった時の処理
+	function collisionDetection() {
+	    for(var c=0; c<brockColumnCount; c++) {
+	        for(var r=0; r<brockRowCount; r++) {
+	            var b = brocks[c][r];
+	            if(b.status == 1){
+		            if(x > b.x && x < b.x+brockW && y > b.y && y < b.y+brockH) {
+	                	dy = -dy;
+	                	b.status = 0;
+	                	score+=10;
+	                }
+	            }
+	        }
+	    }
+	}
+	
+	function clearhantei(){
+		if(score >= winscore) {
+			alert("YOU WIN, CONGRATULATIONS!");
+			document.location.reload();
+			clearInterval(interval); 
+	   	}
+	}
+	
+	
+	//キーを押すか話したときに関数を呼び出す
+	document.addEventListener("keydown", keyDownHandler, false);
+	document.addEventListener("keyup", keyUpHandler, false);
+	
+	//キーを押したかどうかの判定
+	function keyDownHandler(e) {
+	    if(e.key == "Right" || e.key == "ArrowRight") {
+	        rightPressed = true;
+	    }
+	    else if(e.key == "Left" || e.key == "ArrowLeft") {
+	        leftPressed = true;
+	    }
+	}
+
+	//キーを離したかどうかの判定
+	function keyUpHandler(e) {
+	    if(e.key == "Right" || e.key == "ArrowRight") {
+	        rightPressed = false;
+	    }
+	    else if(e.key == "Left" || e.key == "ArrowLeft") {
+	        leftPressed = false;
+	    }
+	}
+	
+	
+	function draw(){
+		ctx.clearRect(0, 0, canvas.width, canvas.height);
+		drawBrocks();
+		drawBall();
+		drawPaddle()
+		collisionDetection();
+		drawScore();
+		kabehantei();
+		paddleplay();
+		clearhantei();
+	}
+	
+	var interval = setInterval(draw, 10);
+	
+</script>
+
+</body>
+</html>
